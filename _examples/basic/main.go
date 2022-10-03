@@ -1,0 +1,16 @@
+package main
+
+import "github.com/goware/alerter"
+
+func main() {
+	alerter, err := alerter.NewDiscordAlerter(&alerter.Config{
+		WebhookURL:   "https://discord.com/api/webhooks/0000000000/abcdefghijklmnopqrstuvwxyz",
+		Username:     "Alerter",
+		AvatarURL:    "https://cdn.discordapp.com/embed/avatars/0.png",
+		RoleIDToPing: 849690281536389230,
+	})
+	if err != nil {
+		panic(err)
+	}
+	alerter.Alert("hello world %v", "error 1 2 3")
+}
