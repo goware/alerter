@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	alerter, err := alerter.NewDiscordAlerter(&alerter.Config{
+	alerter, err := alerter.NewDiscordAlerter(&alerter.DiscordConfig{
 		WebhookURL: "https://discord.com/api/webhooks/0000000000/abcdefghijklmnopqrstuvwxyz",
 		// Username:   "Alerter",
 		// AvatarURL:    "https://cdn.discordapp.com/embed/avatars/0.png",

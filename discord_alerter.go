@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Config struct {
+type DiscordConfig struct {
 	// required
 	// WebhookURL is the discord webhook url for a channel
 	WebhookURL string
@@ -42,7 +42,7 @@ type discordAlerter struct {
 
 var _ Alerter = &discordAlerter{}
 
-func NewDiscordAlerter(cfg *Config) (Alerter, error) {
+func NewDiscordAlerter(cfg *DiscordConfig) (Alerter, error) {
 	if cfg.WebhookURL == "" {
 		return nil, fmt.Errorf("webhook url is required")
 	}
@@ -58,7 +58,7 @@ func NewDiscordAlerter(cfg *Config) (Alerter, error) {
 	}
 
 	if cfg.AlertCooldown == 0 {
-		cfg.AlertCooldown = 30 * time.Second
+		cfg.AlertCooldown = 1 * time.Minute
 	}
 
 	mstore, err := memlru.New[bool](cachestore.WithDefaultKeyExpiry(cfg.AlertCooldown))
@@ -139,7 +139,7 @@ type embed struct {
 	Color       int    `json:"color"`
 }
 
-type paylod struct {
+type payload struct {
 	Username  string  `json:"username"`
 	AvatarURL string  `json:"avatar_url"`
 	Content   string  `json:"content"`
@@ -147,7 +147,7 @@ type paylod struct {
 }
 
 func (a *discordAlerter) formJsonPayload(format string, v ...interface{}) (string, error) {
-	p := paylod{
+	p := payload{
 		Username:  a.Username,
 		AvatarURL: a.AvatarURL,
 		Embeds: []embed{
