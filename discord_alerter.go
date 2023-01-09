@@ -11,7 +11,6 @@ import (
 
 	"github.com/goware/cachestore"
 	"github.com/goware/cachestore/memlru"
-	"github.com/rs/zerolog/log"
 )
 
 type DiscordConfig struct {
@@ -76,33 +75,33 @@ func NewDiscordAlerter(cfg *DiscordConfig) (Alerter, error) {
 	}, nil
 }
 
-func (a *discordAlerter) Alert(ctx context.Context, format string, v ...interface{}) {
+func (a *discordAlerter) Alert(ctx context.Context, level Level, format string, v ...interface{}) {
 	// log it
-	log.Error().Str("alert", "alert").Msgf(format, v...)
+	level.ZeroLogEvent().Msgf(format, v...)
 
 	cacheKey := fmt.Sprintf("%d", xxh64FromString(fmt.Sprintf(format, v...)))
 	if _, exists, _ := a.errStore.Get(ctx, cacheKey); exists {
 		return
 	}
 
-	p, err := a.formJsonPayload(format, v...)
+	p, err := a.formJsonPayload(format, level, v...)
 	if err != nil {
-		log.Error().Str("alert", "alert").Msgf("failed to form json payload: %v", err)
+		level.ZeroLogEvent().Msgf("failed to form json payload: %v", err)
 		return
 	}
-	a.doRequest(ctx, cacheKey, p)
+	a.doRequest(ctx, level, cacheKey, p)
 }
 
-func (a *discordAlerter) doRequest(ctx context.Context, cacheKey string, payload string) {
+func (a *discordAlerter) doRequest(ctx context.Context, level Level, cacheKey string, payload string) {
 	req, err := http.NewRequestWithContext(ctx, "POST", a.WebhookURL, bytes.NewReader([]byte(payload)))
 	if err != nil {
-		log.Error().Str("alert", "alert").Msgf("failed to create request: %v", err)
+		level.ZeroLogEvent().Msgf("failed to create request: %v", err)
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := a.Client.Do(req)
 	if err != nil {
-		log.Error().Str("alert", "alert").Msgf("failed to send alert: %v", err)
+		level.ZeroLogEvent().Msgf("failed to send alert: %v", err)
 		return
 	}
 
@@ -113,19 +112,19 @@ func (a *discordAlerter) doRequest(ctx context.Context, cacheKey string, payload
 		a.errStore.Set(ctx, cacheKey, true)
 		return
 	case statusCode == 429:
-		log.Error().Str("alert", "alert").Msgf("rate limited")
+		level.ZeroLogEvent().Msgf("rate limited")
 		timeToWait, err := time.ParseDuration(req.Header.Get("Retry-After"))
 		if err != nil {
-			log.Error().Str("alert", "alert").Msgf("failed to parse retry after header: %v", err)
+			level.ZeroLogEvent().Msgf("failed to parse retry after header: %v", err)
 		}
 
 		go func() {
 			time.Sleep(timeToWait)
-			a.doRequest(ctx, cacheKey, payload)
+			a.doRequest(ctx, level, cacheKey, payload)
 		}()
 	default:
 		body, _ := io.ReadAll(resp.Body)
-		log.Error().Str("alert", "alert").Msgf("unexpected status code: %v, body: %v", resp.StatusCode, string(body))
+		level.ZeroLogEvent().Msgf("unexpected status code: %v, body: %v", resp.StatusCode, string(body))
 	}
 }
 
@@ -146,7 +145,7 @@ type payload struct {
 	Embeds    []embed `json:"embeds"`
 }
 
-func (a *discordAlerter) formJsonPayload(format string, v ...interface{}) (string, error) {
+func (a *discordAlerter) formJsonPayload(format string, level Level, v ...interface{}) (string, error) {
 	p := payload{
 		Username:  a.Username,
 		AvatarURL: a.AvatarURL,
@@ -158,12 +157,12 @@ func (a *discordAlerter) formJsonPayload(format string, v ...interface{}) (strin
 				}{Name: a.Username, IconURL: a.AvatarURL},
 				Title:       "Alert",
 				Description: fmt.Sprintf(format, v...),
-				Color:       0xff0000,
+				Color:       level.Color(),
 			},
 		},
 	}
 
-	if a.RoleIDToPing > 0 {
+	if a.RoleIDToPing > 0 && level == LevelError {
 		p.Content = fmt.Sprintf("<@&%d>", a.RoleIDToPing)
 	}
 
