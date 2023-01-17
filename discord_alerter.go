@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/goware/cachestore"
+	"github.com/goware/cachestore/cachestorectl"
 	"github.com/goware/cachestore/memlru"
 	"github.com/rs/zerolog/log"
 )
@@ -28,7 +29,9 @@ type DiscordConfig struct {
 	RoleIDToPing uint64
 	// AlertCooldown is the time to wait before sending the same alert again
 	AlertCooldown time.Duration
-	Client        *http.Client
+
+	Client       *http.Client
+	CacheBackend cachestore.Backend
 }
 
 type discordAlerter struct {
@@ -61,7 +64,11 @@ func NewDiscordAlerter(cfg *DiscordConfig) (Alerter, error) {
 		cfg.AlertCooldown = 1 * time.Minute
 	}
 
-	mstore, err := memlru.New[bool](cachestore.WithDefaultKeyExpiry(cfg.AlertCooldown))
+	if cfg.CacheBackend == nil {
+		cfg.CacheBackend = memlru.Backend(512)
+	}
+
+	mstore, err := cachestorectl.Open[bool](cfg.CacheBackend, cachestore.WithDefaultKeyExpiry(cfg.AlertCooldown))
 	if err != nil {
 		return nil, err
 	}
