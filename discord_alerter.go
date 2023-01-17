@@ -19,6 +19,8 @@ type DiscordConfig struct {
 	// required
 	// WebhookURL is the discord webhook url for a channel
 	WebhookURL string
+	// Env is the environment name that will be added to the title
+	Env string
 
 	// optionals
 	// Username is the username which will appear in the alert message
@@ -35,6 +37,7 @@ type DiscordConfig struct {
 }
 
 type discordAlerter struct {
+	Env          string
 	WebhookURL   string
 	Username     string
 	AvatarURL    string
@@ -48,6 +51,9 @@ var _ Alerter = &discordAlerter{}
 func NewDiscordAlerter(cfg *DiscordConfig) (Alerter, error) {
 	if cfg.WebhookURL == "" {
 		return nil, fmt.Errorf("webhook url is required")
+	}
+	if cfg.Env == "" {
+		return nil, fmt.Errorf("env is required")
 	}
 	if cfg.Username == "" {
 		cfg.Username = "Alerter"
@@ -163,7 +169,7 @@ func (a *discordAlerter) formJsonPayload(format string, v ...interface{}) (strin
 					Name    string `json:"name"`
 					IconURL string `json:"icon_url"`
 				}{Name: a.Username, IconURL: a.AvatarURL},
-				Title:       "Alert",
+				Title:       fmt.Sprintf("Alert - %s", a.Env),
 				Description: fmt.Sprintf(format, v...),
 				Color:       0xff0000,
 			},
