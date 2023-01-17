@@ -80,6 +80,7 @@ func NewDiscordAlerter(cfg *DiscordConfig) (Alerter, error) {
 	}
 
 	return &discordAlerter{
+		Env:          cfg.Env,
 		WebhookURL:   cfg.WebhookURL,
 		Username:     cfg.Username,
 		AvatarURL:    cfg.AvatarURL,
