@@ -27,8 +27,8 @@ type DiscordConfig struct {
 	Username string
 	// AvatarURL is the avatar url which will appear in the icon of the alert message
 	AvatarURL string
-	// RoleIDToPing is the role id to ping in the alert message (if 0, no role will be pinged)
-	RoleIDToPing uint64
+	// MentionRoleID is the role id to ping in the alert message (if 0, no role will be pinged)
+	MentionRoleID uint64
 	// AlertCooldown is the time to wait before sending the same alert again
 	AlertCooldown time.Duration
 
@@ -37,13 +37,13 @@ type DiscordConfig struct {
 }
 
 type discordAlerter struct {
-	Env          string
-	WebhookURL   string
-	Username     string
-	AvatarURL    string
-	RoleIDToPing uint64
-	errStore     cachestore.Store[bool]
-	Client       *http.Client
+	Env           string
+	WebhookURL    string
+	Username      string
+	AvatarURL     string
+	MentionRoleID uint64
+	errStore      cachestore.Store[bool]
+	Client        *http.Client
 }
 
 var _ Alerter = &discordAlerter{}
@@ -80,13 +80,13 @@ func NewDiscordAlerter(cfg *DiscordConfig) (Alerter, error) {
 	}
 
 	return &discordAlerter{
-		Env:          cfg.Env,
-		WebhookURL:   cfg.WebhookURL,
-		Username:     cfg.Username,
-		AvatarURL:    cfg.AvatarURL,
-		RoleIDToPing: cfg.RoleIDToPing,
-		errStore:     mstore,
-		Client:       cfg.Client,
+		Env:           cfg.Env,
+		WebhookURL:    cfg.WebhookURL,
+		Username:      cfg.Username,
+		AvatarURL:     cfg.AvatarURL,
+		MentionRoleID: cfg.MentionRoleID,
+		errStore:      mstore,
+		Client:        cfg.Client,
 	}, nil
 }
 
@@ -177,8 +177,8 @@ func (a *discordAlerter) formJsonPayload(format string, v ...interface{}) (strin
 		},
 	}
 
-	if a.RoleIDToPing > 0 {
-		p.Content = fmt.Sprintf("<@&%d>", a.RoleIDToPing)
+	if a.MentionRoleID > 0 {
+		p.Content = fmt.Sprintf("<@&%d>", a.MentionRoleID)
 	}
 
 	b, err := json.Marshal(p)
