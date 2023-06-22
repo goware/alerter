@@ -19,18 +19,25 @@ type DiscordConfig struct {
 	// required
 	// WebhookURL is the discord webhook url for a channel
 	WebhookURL string
+
 	// Env is the environment name that will be added to the title
 	Env string
 
 	// optionals
 	// Username is the username which will appear in the alert message
 	Username string
+
 	// AvatarURL is the avatar url which will appear in the icon of the alert message
 	AvatarURL string
+
 	// MentionRoleID is the role id to ping in the alert message (if 0, no role will be pinged)
 	MentionRoleID uint64
+
 	// AlertCooldown is the time to wait before sending the same alert again
 	AlertCooldown time.Duration
+
+	// Skip log entry on alert. In this case, its expected you will log on your own
+	SkipLogEntry bool
 
 	Client       *http.Client
 	CacheBackend cachestore.Backend
@@ -42,6 +49,7 @@ type discordAlerter struct {
 	Username      string
 	AvatarURL     string
 	MentionRoleID uint64
+	SkipLogEntry  bool
 	errStore      cachestore.Store[bool]
 	Client        *http.Client
 }
@@ -85,6 +93,7 @@ func NewDiscordAlerter(cfg *DiscordConfig) (Alerter, error) {
 		Username:      cfg.Username,
 		AvatarURL:     cfg.AvatarURL,
 		MentionRoleID: cfg.MentionRoleID,
+		SkipLogEntry:  cfg.SkipLogEntry,
 		errStore:      mstore,
 		Client:        cfg.Client,
 	}, nil
@@ -92,7 +101,9 @@ func NewDiscordAlerter(cfg *DiscordConfig) (Alerter, error) {
 
 func (a *discordAlerter) Alert(ctx context.Context, format string, v ...interface{}) {
 	// log it
-	log.Error().Str("alert", "alert").Msgf(format, v...)
+	if !a.SkipLogEntry {
+		log.Error().Str("alert", "alert").Msgf(format, v...)
+	}
 
 	cacheKey := fmt.Sprintf("%d", xxh64FromString(fmt.Sprintf(format, v...)))
 	if _, exists, _ := a.errStore.Get(ctx, cacheKey); exists {
