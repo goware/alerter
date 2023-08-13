@@ -2,7 +2,9 @@ package alerter
 
 import (
 	"context"
+	"net/http"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog/log"
 )
 
@@ -21,4 +23,8 @@ func (a *defaultAlerter) Alert(ctx context.Context, format string, v ...interfac
 	if a.logAlerts {
 		log.Error().Str("alert", "alert").Msgf(format, v...)
 	}
+}
+
+func (a *defaultAlerter) Recoverer() func(next http.Handler) http.Handler {
+	return middleware.Recoverer
 }

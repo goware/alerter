@@ -3,6 +3,7 @@ module github.com/goware/alerter
 go 1.18
 
 require (
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/goware/cachestore v0.7.0
 	github.com/rs/zerolog v1.29.1
 	github.com/zeebo/xxh3 v1.0.2

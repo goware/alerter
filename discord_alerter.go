@@ -154,14 +154,21 @@ func (a *discordAlerter) doRequest(ctx context.Context, cacheKey string, payload
 	}
 }
 
+type field struct {
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Inline bool   `json:"inline"`
+}
+
 type embed struct {
 	Author struct {
 		Name    string `json:"name"`
 		IconURL string `json:"icon_url"`
 	}
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Color       int    `json:"color"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Color       int     `json:"color"`
+	Fields      []field `json:"fields"`
 }
 
 type payload struct {
