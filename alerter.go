@@ -15,6 +15,9 @@ type Alerter interface {
 }
 
 type Config struct {
+	// Noop toggle. If true will return a noop alerter.
+	Noop bool
+
 	// Logger
 	Logger *slog.Logger
 
@@ -42,6 +45,10 @@ type Config struct {
 }
 
 func NewAlerter(destination string, cfg *Config) (Alerter, error) {
+	if cfg.Noop {
+		return Noop(), nil
+	}
+
 	switch destination {
 	case "discord":
 		return NewDiscordAlerter(cfg)
@@ -50,4 +57,13 @@ func NewAlerter(destination string, cfg *Config) (Alerter, error) {
 	default:
 		return nil, fmt.Errorf("alerter: unsupported destination '%s'", destination)
 	}
+}
+
+func Noop() Alerter {
+	return &noopAlerter{}
+}
+
+type noopAlerter struct{}
+
+func (a *noopAlerter) Alert(ctx context.Context, format string, v ...interface{}) {
 }
