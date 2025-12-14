@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/goware/cachestore"
+	cachestore "github.com/goware/cachestore2"
 )
 
 type Alerter interface {

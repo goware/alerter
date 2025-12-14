@@ -10,9 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/goware/cachestore"
-	"github.com/goware/cachestore/cachestorectl"
-	"github.com/goware/cachestore/memlru"
+	memcache "github.com/goware/cachestore-mem"
+	cachestore "github.com/goware/cachestore2"
 )
 
 type slackAlerter struct {
@@ -46,13 +45,13 @@ func NewSlackAlerter(cfg *Config) (Alerter, error) {
 		cfg.Client = http.DefaultClient
 	}
 	if cfg.CacheBackend == nil {
-		cfg.CacheBackend = memlru.Backend(512)
+		var err error
+		cfg.CacheBackend, err = memcache.NewBackend(500)
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	mstore, err := cachestorectl.Open[bool](cfg.CacheBackend, cachestore.WithDefaultKeyExpiry(cfg.AlertCooldown))
-	if err != nil {
-		return nil, err
-	}
+	mstore := cachestore.OpenStore[bool](cfg.CacheBackend, cachestore.WithDefaultKeyExpiry(cfg.AlertCooldown))
 
 	return &slackAlerter{
 		Logger:       cfg.Logger,
@@ -71,7 +70,7 @@ func (a *slackAlerter) Alert(ctx context.Context, format string, v ...interface{
 		a.Logger.With("alert", "alert").Error(fmt.Sprintf(format, v...))
 	}
 
-	cacheKey := fmt.Sprintf("%d", xxh64FromString(fmt.Sprintf(format, v...)))
+	cacheKey := fmt.Sprintf("alerter:%d", xxh64FromString(fmt.Sprintf(format, v...)))
 	if _, exists, _ := a.errStore.Get(ctx, cacheKey); exists {
 		return
 	}
